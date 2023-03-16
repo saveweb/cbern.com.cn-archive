@@ -130,8 +130,10 @@ def upload(filelist, config={}):
         dupCount = 0
         print("Files in item: %s" % len(item.files))
         print("Files to upload: %s" % len(filelist))
+        progress = 0
         for fileInItem in item.files:
-            print(fileInItem['name'])
+            progress += 1
+            print(progress, fileInItem['name'], end='\r')
             if (fileInItem['name'] in filelist
                 and (fileInItem.get('sha1') == file_sha1(fileInItem['name']))
                 ):
