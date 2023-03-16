@@ -21,6 +21,8 @@ import sys
 import time
 
 from internetarchive import get_item
+from internetarchive.item import HTTPError as IAHTTPError
+
 
 # <!-- Hardcoded configuration
 lang = "zh"
@@ -135,20 +137,28 @@ def upload(filelist, config={}):
             progress += 1
             print(progress, fileInItem['name'], end='       \r')
             if (fileInItem['name'] in filelist
-                and (fileInItem.get('sha1') == file_sha1(fileInItem['name']))
+                #and (fileInItem.get('sha1') == file_sha1(fileInItem['name']))
                 ):
                 filelist.remove(fileInItem['name'])
                 dupCount += 1
         print("Found %d duplicate files" % dupCount)
         print("Files to upload: %s" % len(filelist))
-        r = item.upload(
-            files=filelist,
-            metadata=md,
-            access_key=ia_keys["access"],
-            secret_key=ia_keys["secret"],
-            verbose=True,
-            queue_derive=False,
-        )
+        for file in filelist:
+            try:
+                r = item.upload(
+                    files=file,
+                    metadata=md,
+                    access_key=ia_keys["access"],
+                    secret_key=ia_keys["secret"],
+                    verbose=True,
+                    queue_derive=False,
+                )
+            except IAHTTPError as e:
+                # raise type(HTTPError)(error_msg, response=exc.response, request=exc.request)
+                print(e)
+                with open('error.log', 'a') as f:
+                    f.write(file+': '+str(e)+'\n')
+
 
         item.modify_metadata(md)  # update
         print(
