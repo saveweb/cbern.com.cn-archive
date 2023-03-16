@@ -133,13 +133,14 @@ def upload(filelist, config={}):
         progress = 0
         for fileInItem in item.files:
             progress += 1
-            print(progress, fileInItem['name'], end='\r')
+            print(progress, fileInItem['name'], end='       \r')
             if (fileInItem['name'] in filelist
                 and (fileInItem.get('sha1') == file_sha1(fileInItem['name']))
                 ):
                 filelist.remove(fileInItem['name'])
                 dupCount += 1
         print("Found %d duplicate files" % dupCount)
+        print("Files to upload: %s" % len(filelist))
         r = item.upload(
             files=filelist,
             metadata=md,
