@@ -17,6 +17,7 @@
 
 import argparse
 import hashlib
+import sys
 import time
 
 from internetarchive import get_item
@@ -28,8 +29,17 @@ originalurl = 'https://www.zxx.edu.cn'
 identifier = 'cbern.com.cn-textbook'
 collection = 'opensource'
 title = '中小学教育资源平台电子书'
-description = '中小学教育资源平台电子书, 国家基础教育资源网, 国家智慧教育公共服务平台, 挂加教育资源公共服务平台'
-filelist = ['cbern-textbooks.zip', 'books_links.txt']
+description = '中小学教育资源平台电子书, 国家基础教育资源网, 国家智慧教育公共服务平台, 国家教育资源公共服务平台'
+filelist = ['books_links.txt']
+filesdir = 'download'
+
+def getFiles(dir):
+    import os
+    files = []
+    for root, dirs, fs in os.walk(dir):
+        for f in fs:
+            files.append(os.path.join(root, f))
+    return files
 def getUserAgent():
     return 'STWP/1.0 (save-web.org)'
 # -->
@@ -79,6 +89,22 @@ def file_md5(path):
 
     return digest.hexdigest()
 
+def file_sha1(path):
+    buffer = bytearray(65536)
+    view = memoryview(buffer)
+    digest = hashlib.sha1()
+
+    with open(path, mode="rb") as f:
+        while True:
+            n = f.readinto(buffer)
+
+            if not n:
+                break
+
+            digest.update(view[:n])
+
+    return digest.hexdigest()
+
 def upload(filelist, config={}):
     ia_keys = read_ia_keys(config.keysfile)
 
@@ -101,6 +127,17 @@ def upload(filelist, config={}):
     # Upload files and update metadata
     try:
         item = get_item(identifier)
+        dupCount = 0
+        print("Files in item: %s" % len(item.files))
+        print("Files to upload: %s" % len(filelist))
+        for fileInItem in item.files:
+            print(fileInItem['name'])
+            if (fileInItem['name'] in filelist
+                and (fileInItem.get('sha1') == file_sha1(fileInItem['name']))
+                ):
+                filelist.remove(fileInItem['name'])
+                dupCount += 1
+        print("Found %d duplicate files" % dupCount)
         r = item.upload(
             files=filelist,
             metadata=md,
@@ -126,6 +163,8 @@ def main(params=[]):
     parser.add_argument("-kf", "--keysfile", default="keys.txt")
     config = parser.parse_args()
 
+    files = getFiles(filesdir)
+    filelist.extend(files)
     upload(filelist, config)
 
 
